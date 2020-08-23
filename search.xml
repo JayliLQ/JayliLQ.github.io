@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title><![CDATA[java8 新特性]]></title>
+    <url>%2F2020%2F08%2F23%2Fjava8-%E6%96%B0%E7%89%B9%E6%80%A7%2F</url>
+    <content type="text"><![CDATA[函数式接口，Lambda 表达式，Stream 操作，Optional 类，全球化功能，IDEA 调试流式操作等等。函数式接口通过在接口里面添加一个抽象方法，这些方法可以直接从接口中运行。如果一个接口定义个唯一一个抽象方法，那么这个接口就成为函数式接口。同时，引入了一个新的注解：@FunctionalInterface。可以把他它放在一个接口前，表示这个接口是一个函数式接口。这个注解是非必须的，只要接口只包含一个方法的接口，虚拟机会自动判断，不过最好在接口上使用注解 @FunctionalInterface 进行声明。在接口中添加了 @FunctionalInterface 的接口，只允许有一个抽象方法，否则编译器也会报错。1234@FunctionalInterfacepublic interface Runnable &#123;public abstract void run();&#125;Lambda 表达式Lambda 表达式的初衷是进一步简化匿名内部类的语法，使 Java 走向函数式编程。12345678new Thread(new Runnable() &#123; @Override public void run() &#123; System.out.println("thread 1"); &#125; &#125;).start();new Thread(()-&gt; System.out.println("thread 2")).start();编译时：Lambda 表达式会生成一个方法， 方法实现了表达式的代码逻辑生成invokedynamic指令， 调用bootstrap方法， 由java.lang.invoke.LambdaMetafactory.metafactory方法实现运行时：invokedynamic指令调用metafactory方法。 它会返回一个CallSite, 此CallSite返回目标类型的一个匿名实现类， 此类关联编译时产生的方法lambda表达式调用时会调用匿名实现类关联的方法。Lambda 表达式由三个部分组成：第一部分为一个括号内用逗号分隔的形式参数，参数是函数式接口里面方法的参数；第二部分为一个箭头符号：-&gt;；第三部分为方法体，可以是表达式和代码块。语法如下：方法体为表达式，该表达式的值作为返回值返回。1(parameters) -&gt; expression方法体为代码块，必须用 {} 来包裹起来，且需要一个 return 返回值，但若函数式接口里面方法返回值是 void，则无需返回值。1(parameters) -&gt; &#123; statements; &#125;要使用 Lambda 表达式，需要定义一个函数式接口，这样往往会让程序充斥着过量的仅为 Lambda 表达式服务的函数式接口。为了减少这样过量的函数式接口，Java 8 在 java.util.function 中增加了不少新的函数式通用接口。例如：Function&lt;T, R&gt;：将 T 作为输入，返回 R 作为输出，他还包含了和其他函数组合的默认方法。Predicate：将 T 作为输入，返回一个布尔值作为输出，该接口包含多种默认方法来将 Predicate 组合成其他复杂的逻辑（与、或、非）。Consumer：将 T 作为输入，不返回任何内容，表示在单个参数上的操作。12345678910111213141516171819202122//Predicate接口是输入一个参数，返回布尔值。我们通过and方法组合两个Predicate条件，判断是否值大于0并且是偶数Predicate&lt;Integer&gt; positiveNumber = i -&gt; i &gt; 0;Predicate&lt;Integer&gt; evenNumber = i -&gt; i % 2 == 0;assertTrue(positiveNumber.and(evenNumber).test(2));//Consumer接口是消费一个数据。我们通过andThen方法组合调用两个Consumer，输出两行abcdefgConsumer&lt;String&gt; println = System.out::println;println.andThen(println).accept("abcdefg");//Function接口是输入一个数据，计算后输出一个数据。我们先把字符串转换为大写，然后通过andThen组合另一个Function实现字符串拼接Function&lt;String, String&gt; upperCase = String::toUpperCase;Function&lt;String, String&gt; duplicate = s -&gt; s.concat(s);assertThat(upperCase.andThen(duplicate).apply("test"), is("TESTTEST"));//Supplier是提供一个数据的接口。这里我们实现获取一个随机数Supplier&lt;Integer&gt; random = ()-&gt;ThreadLocalRandom.current().nextInt();System.out.println(random.get());//BinaryOperator是输入两个同类型参数，输出一个同类型参数的接口。这里我们通过方法引用获得一个整数加法操作，通过Lambda表达式定义一个减法操作，然后依次调用BinaryOperator&lt;Integer&gt; add = Integer::sum;BinaryOperator&lt;Integer&gt; subtraction = (a, b) -&gt; a - b;assertThat(subtraction.apply(add.apply(1, 2), 3), is(0));Lambda 表达式给了我们复用代码的更多可能性，我们可以把变化的部分抽象出函数式接口，由外部方法提供函数实现，重用方法用 default 在接口中实现。Stream创建流一般有五种方式：通过 stream 方法把 List 或数组转换为流；通过 Stream.of 方法直接传入多个元素构成一个流；通过 Stream.iterate 方法使用迭代的方式构造一个无限流，然后使用 limit 限制流元素个数；通过 Stream.generate 方法从外部传入一个提供元素的 Supplier 来构造无限流，然后使用 limit 限制流元素个数；通过 IntStream 或 DoubleStream 构造基本类型的流。1234567891011121314151617181920212223242526272829303132//通过stream方法把List或数组转换为流Arrays.asList("a1", "a2", "a3").stream().forEach(System.out::println); Arrays.stream(new int[]&#123;1, 2, 3&#125;).forEach(System.out::println);//通过Stream.of方法直接传入多个元素构成一个流String[] arr = &#123;"a", "b", "c"&#125;; Stream.of(arr).forEach(System.out::println); Stream.of("a", "b", "c").forEach(System.out::println); Stream.of(1, 2, "a").map(item -&gt; item.getClass().getName()).forEach(System.out::println);//通过Stream.iterate方法使用迭代的方式构造一个无限流，然后使用limit限制流元素个数Stream.iterate(2, item -&gt; item * 2).limit(10).forEach(System.out::println); Stream.iterate(BigInteger.ZERO, n -&gt; n.add(BigInteger.TEN)).limit(10).forEach(System.out::println);//通过Stream.generate方法从外部传入一个提供元素的Supplier来构造无限流，然后使用limit限制流元素个数Stream.generate(() -&gt; "test").limit(3).forEach(System.out::println); Stream.generate(Math::random).limit(10).forEach(System.out::println);//通过IntStream或DoubleStream构造基本类型的流//演示IntStream和DoubleStream IntStream.range(1, 3).forEach(System.out::println); IntStream.range(0, 3).mapToObj(i -&gt; "x").forEach(System.out::println); IntStream.rangeClosed(1, 3).forEach(System.out::println); DoubleStream.of(1.1, 2.2, 3.3).forEach(System.out::println); //各种转换，后面注释代表了输出结果 System.out.println(IntStream.of(1, 2).toArray().getClass()); //class [I System.out.println(Stream.of(1, 2).mapToInt(Integer::intValue).toArray().getClass()); //class [I System.out.println(IntStream.of(1, 2).boxed().toArray().getClass()); //class [Ljava.lang.Object; System.out.println(IntStream.of(1, 2).asDoubleStream().toArray().getClass()); //class [D System.out.println(IntStream.of(1, 2).asLongStream().toArray().getClass()); //class [J //注意基本类型流和装箱后的流的区别 Arrays.asList("a", "b", "c").stream() // Stream .mapToInt(String::length) // IntStream .asLongStream() // LongStream .mapToDouble(x -&gt; x / 10.0) // DoubleStream .boxed() // Stream .mapToLong(x -&gt; 1L) // LongStream .mapToObj(x -&gt; "") // Stream .collect(Collectors.toList());集合流式操作把集合的投影、转换、过滤等操作抽象成通用的接口，然后通过 Lambda 表达式传入其具体实现，就是 Stream 操作。通过该操作可以实现对集合（Collection）的并行处理和函数式操作。根据操作返回的结果不同，流式操作分为中间操作和最终操作两种。最终操作返回一特定类型的结果，而中间操作返回流本身，这样就可以将多个操作依次串联起来。根据流的并发性，流又可以分为串行和并行两种。流式操作实现了集合的过滤、排序、映射等功能。Stream 和 Collection 集合的区别：Collection 是一种静态的内存数据结构，而 Stream 是有关计算的。前者是主要面向内存，存储在内存中，后者主要是面向 CPU，通过 CPU 实现计算。流有串行和并行两种，串行流上的操作是在一个线程中依次完成，而并行流则是在多个线程上同时执行。并行与串行的流可以相互切换：通过 stream.sequential() 返回串行的流，通过 stream.parallel() 返回并行的流。相比较串行的流，并行的流可以很大程度上提高程序的执行效率。中间操作会保持 stream 处于中间状态，允许做进一步的操作。它返回的还是的 Stream，允许更多的链式操作。终止操作必须是流的最后一个操作，一旦被调用，Stream 就到了一个终止状态，而且不能再使用了。Stream 操作汇总123456789101112131415161718192021222324252627//订单类@Datapublic class Order &#123; private Long id; private Long customerId;//顾客ID private String customerName;//顾客姓名 private List&lt;OrderItem&gt; orderItemList;//订单商品明细 private Double totalPrice;//总价格 private LocalDateTime placedAt;//下单时间&#125;//订单商品类@Data@AllArgsConstructor@NoArgsConstructorpublic class OrderItem &#123; private Long productId;//商品ID private String productName;//商品名称 private Double productPrice;//商品价格 private Integer productQuantity;//商品数量&#125;//顾客类@Data@AllArgsConstructorpublic class Customer &#123; private Long id; private String name;//顾客姓名&#125;123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354//最近半年的金额大于40的订单orders.stream() .filter(Objects::nonNull) //过滤null值 .filter(order -&gt; order.getPlacedAt().isAfter(LocalDateTime.now().minusMonths(6))) //最近半年的订单 .filter(order -&gt; order.getTotalPrice() &gt; 40) //金额大于40的订单 .forEach(System.out::println); //计算所有订单商品数量//1. 通过两次遍历实现LongAdder longAdder = new LongAdder();orders.stream().forEach(order -&gt; order.getOrderItemList().forEach(orderItem -&gt; longAdder.add(orderItem.getProductQuantity())));//2. 使用两次mapToLong+sum方法实现assertThat(longAdder.longValue(), is(orders.stream().mapToLong(order -&gt; order.getOrderItemList().stream() .mapToLong(OrderItem::getProductQuantity).sum()).sum()));//统计所有订单的总价格//1. 直接展开订单商品进行价格统计orders.stream() .flatMap(order -&gt; order.getOrderItemList().stream()) .mapToDouble(item -&gt; item.getProductQuantity() * item.getProductPrice()).sum();//2. 另一种方式flatMap+mapToDouble=flatMapToDoubleorders.stream() .flatMapToDouble(order -&gt; order.getOrderItemList() .stream().mapToDouble(item -&gt; item.getProductQuantity() * item.getProductPrice())) .sum();//大于50的订单,按照订单价格倒序前5orders.stream().filter(order -&gt; order.getTotalPrice() &gt; 50) .sorted(comparing(Order::getTotalPrice).reversed()) .limit(5) .forEach(System.out::println); //去重的下单用户orders.stream().map(order -&gt; order.getCustomerName()).distinct().collect(joining(","));//所有购买过的商品orders.stream() .flatMap(order -&gt; order.getOrderItemList().stream()) .map(OrderItem::getProductName) .distinct().collect(joining(","));//按照下单时间排序，查询前2个订单的顾客姓名和下单时间orders.stream() .sorted(comparing(Order::getPlacedAt)) .map(order -&gt; order.getCustomerName() + "@" + order.getPlacedAt()) .limit(2).forEach(System.out::println);//按照下单时间排序，查询第3和第4个订单的顾客姓名和下单时间orders.stream() .sorted(comparing(Order::getPlacedAt)) .map(order -&gt; order.getCustomerName() + "@" + order.getPlacedAt()) .skip(2).limit(2).forEach(System.out::println);Collectors 类常用静态方法1234567891011121314151617181920212223242526272829303132333435363738394041424344454647//按照用户名分组，统计下单数量System.out.println(orders.stream().collect(groupingBy(Order::getCustomerName, counting())) .entrySet().stream().sorted(Map.Entry.&lt;String, Long&gt;comparingByValue().reversed()).collect(toList()));//按照用户名分组，统计订单总金额System.out.println(orders.stream().collect(groupingBy(Order::getCustomerName, summingDouble(Order::getTotalPrice))) .entrySet().stream().sorted(Map.Entry.&lt;String, Double&gt;comparingByValue().reversed()).collect(toList()));//按照用户名分组，统计商品采购数量System.out.println(orders.stream().collect(groupingBy(Order::getCustomerName, summingInt(order -&gt; order.getOrderItemList().stream() .collect(summingInt(OrderItem::getProductQuantity))))) .entrySet().stream().sorted(Map.Entry.&lt;String, Integer&gt;comparingByValue().reversed()).collect(toList()));//统计最受欢迎的商品，倒序后取第一个orders.stream() .flatMap(order -&gt; order.getOrderItemList().stream()) .collect(groupingBy(OrderItem::getProductName, summingInt(OrderItem::getProductQuantity))) .entrySet().stream() .sorted(Map.Entry.&lt;String, Integer&gt;comparingByValue().reversed()) .map(Map.Entry::getKey) .findFirst() .ifPresent(System.out::println);//统计最受欢迎的商品的另一种方式，直接利用maxByorders.stream() .flatMap(order -&gt; order.getOrderItemList().stream()) .collect(groupingBy(OrderItem::getProductName, summingInt(OrderItem::getProductQuantity))) .entrySet().stream() .collect(maxBy(Map.Entry.comparingByValue())) .map(Map.Entry::getKey) .ifPresent(System.out::println);//按照用户名分组，选用户下的总金额最大的订单orders.stream().collect(groupingBy(Order::getCustomerName, collectingAndThen(maxBy(comparingDouble(Order::getTotalPrice)), Optional::get))) .forEach((k, v) -&gt; System.out.println(k + "#" + v.getTotalPrice() + "@" + v.getPlacedAt()));//根据下单年月分组，统计订单ID列表System.out.println(orders.stream().collect (groupingBy(order -&gt; order.getPlacedAt().format(DateTimeFormatter.ofPattern("yyyyMM")), mapping(order -&gt; order.getId(), toList()))));//根据下单年月+用户名两次分组，统计订单ID列表System.out.println(orders.stream().collect (groupingBy(order -&gt; order.getPlacedAt().format(DateTimeFormatter.ofPattern("yyyyMM")), groupingBy(order -&gt; order.getCustomerName(), mapping(order -&gt; order.getId(), toList())))));123456789101112131415161718192021222324252627282930//生成一定位数的随机字符串System.out.println(random.ints(48, 122) .filter(i -&gt; (i &lt; 57 || i &gt; 65) &amp;&amp; (i &lt; 90 || i &gt; 97)) .mapToObj(i -&gt; (char) i) .limit(20) .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append) .toString());//所有下单的用户，使用toSet去重后实现字符串拼接System.out.println(orders.stream() .map(order -&gt; order.getCustomerName()).collect(toSet()) .stream().collect(joining(",", "[", "]")));//用toCollection收集器指定集合类型System.out.println(orders.stream().limit(2).collect(toCollection(LinkedList::new)).getClass());//使用toMap获取订单ID+下单用户名的Maporders.stream() .collect(toMap(Order::getId, Order::getCustomerName)) .entrySet().forEach(System.out::println);//使用toMap获取下单用户名+最近一次下单时间的Maporders.stream() .collect(toMap(Order::getCustomerName, Order::getPlacedAt, (x, y) -&gt; x.isAfter(y) ? x : y)) .entrySet().forEach(System.out::println);//订单平均购买的商品数量System.out.println(orders.stream().collect(averagingInt(order -&gt; order.getOrderItemList().stream() .collect(summingInt(OrderItem::getProductQuantity)))));partitionBypartitioningBy 用于分区，分区是特殊的分组，只有 true 和 false 两组。比如，我们把用户按照是否下单进行分区，给 partitioningBy 方法传入一个 Predicate 作为数据分区的区分，输出是 Map&gt;1234//根据是否有下单记录进行分区System.out.println(Customer.getData().stream().collect( partitioningBy(customer -&gt; orders.stream().mapToLong(Order::getCustomerId) .anyMatch(id -&gt; id == customer.getId()))));其他12345678910111213141516// 要通过 HashMap 实现一个缓存的操作,先判断缓存中是否有值；如果没有值，就从数据库搜索取值；最后，把数据加入缓存.Map cache = new ConcurrentHashMap&lt;&gt;();// 当Key不存在的时候提供一个Function来代表根据Key获取Value的过程cache.computeIfAbsent(id, i -&gt; Product.getData().stream() .filter(p -&gt; p.getId().equals(i)) //过滤 .findFirst() //找第一个，得到Optional .orElse(null)); //如果找不到Product，则使用nullList &lt;TjfxDimensionDTO&gt; dqrAjList;...// 根据 corp 字段分组，并计算分组后的 zs 字段的总和dqrAjList.stream().collect(Collectors.groupingBy(TjfxDimensionDTO::getCorp, Collectors.summingInt(TjfxDimensionDTO::getZs)));// 根据 id 正排序dqrAjList.stream().sorted(Comparator.comparing(TjfxDimensionDTO::getId)).collect(Collectors.toList());// 过滤 dqrAjList 中， code 不等于 "xx" 的元素dqrAjList.stream().filter(x -&gt; x.getCode().equals("xx")).collect(Collectors.toList());Optional 类Optional 类是一个可以为null的容器对象。如果值存在则isPresent()方法会返回true，调用get()方法会返回该对象。Optional 是个容器：它可以保存类型T的值，或者仅仅保存null。Optional提供很多有用的方法，这样我们就不用显式进行空值检测。Optional 类的引入很好的解决空指针异常。1234567891011121314// 若 countMap.get(corpId) 为空，返回 0Optional.ofNullable(countMap.get(corpId)).orElse(0L);//通过get方法获取Optional中的实际值assertThat(Optional.of(1).get(), is(1));//通过ofNullable来初始化一个null，通过orElse方法实现Optional中无数据的时候返回一个默认值assertThat(Optional.ofNullable(null).orElse("A"), is("A"));//OptionalDouble是基本类型double的Optional对象，isPresent判断有无数据assertFalse(OptionalDouble.empty().isPresent());//通过map方法可以对Optional对象进行级联转换，不会出现空指针，转换后还是一个OptionalassertThat(Optional.of(1).map(Math::incrementExact).get(), is(2));//通过filter实现Optional中数据的过滤，得到一个Optional，然后级联使用orElse提供默认值assertThat(Optional.of(1).filter(integer -&gt; integer % 2 == 0).orElse(null), is(nullValue()));//通过orElseThrow实现无数据时抛出异常Optional.empty().orElseThrow(IllegalArgumentException::new);全球化功能LocalDate, LocalTime, LocalDateTime, ZonedDateTime, Duration，DateTimeFormatter123456789101112131415//LocalDateLocalDate localDate = LocalDate.now(); //获取本地日期localDate = LocalDate.ofYearDay(2020, 200); // 获得 2020 年的第 200 天 System.out.println(localDate.toString());//输出：2020-08-20localDate = LocalDate.of(2020, Month.SEPTEMBER, 10); //2020 年 9 月 10 日 System.out.println(localDate.toString());//输出：2020-09-10LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE); // 20200820//LocalTimeLocalTime localTime = LocalTime.now(); //获取当前时间System.out.println(localTime.toString());//输出当前时间localTime = LocalTime.of(10, 20, 50);//获得 10:20:50 的时间点System.out.println(localTime.toString());//输出: 10:20:50//Clock 时钟Clock clock = Clock.systemDefaultZone();//获取系统默认时区 (当前瞬时时间 )long millis = clock.millis();//IDEA 调试 Streamhttps://www.jetbrains.com/help/idea/analyze-java-stream-operations.html参考JDK 8 中的新特性Java 8 新特性概述Guide To Java 8 OptionalJava 8的那些重要知识点（一）Java 8的那些重要知识点（二）Java 8 Lambda 揭秘]]></content>
+      <categories>
+        <category>Java</category>
+      </categories>
+      <tags>
+        <tag>Java</tag>
+      </tags>
+  </entry>
+  <entry>
     <title><![CDATA[Json errors]]></title>
     <url>%2F2019%2F12%2F01%2Ferrors%2F</url>
     <content type="text"><![CDATA[JSONObject.fromObject() 无法读取到属性值。JSON运用 JSONObject.fromObject() 将对象转换为 JSON ，log 如下1- Property 'name' of class LocalTest$JsonTest2 has no read method. SKIPPEDJSONObject 会将所有 setXXX 的方法，获取对应的 getXXX 方法调用 getXXX 方法获得 XXX 属性的值对一个 Bean 类来讲，可以没有属性，但是只要有 public getter 方法 Java 的内省机制就会认为存在一个属性，比如类中有方法 getMobile ，那么就认为存在一个 mobile 的属性。1234567891011121314public class JsonTest2 &#123; public String getName() &#123; return "sss"; &#125;&#125;@Testpublic void jsonTest() &#123; JsonTest2 jsonTest = new JsonTest2(); System.out.println(JSONObject.fromObject(jsonTest));&#125;输出：&#123;"name":"sss"&#125;解决：所有 setXXX 方法需要有 getXXX]]></content>
@@ -237,130 +248,9 @@
       </tags>
   </entry>
   <entry>
-    <title><![CDATA[云中的网络Qos]]></title>
-    <url>%2F2019%2F06%2F25%2F27.%20%E4%BA%91%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9CQoS%2F</url>
-    <content type="text"><![CDATA[控制网络的 QoS无类别排队规则基于类别的排队规则控制 Qos对于进入的流量，可以设置策略 Ingress policy；对于发出的流量，可以设置 QoS 规则 Egress shaping，支持 HTB。小结云中的流量控制主要通过队列进行的，队列分为两大类：无类别队列规则和基于类别的队列规则。在云中网络 Openvswitch 中，主要使用的是分层令牌桶规则（HTB），将总的带宽在一棵树上按照配置的比例进行分配，并且在一个分支不用的时候，可以借给另外的分支，从而增强带宽利用率。思考这一节中提到，入口流量其实没有办法控制，出口流量是可以很好控制的，你能想出一个控制云中的虚拟机的入口流量的方式吗？安全性和流量控制大概解决了，但是不同用户在物理网络的隔离还是没有解决，你知道怎么解决吗？]]></content>
-      <categories>
-        <category>网络协议</category>
-      </categories>
-      <tags>
-        <tag>网络协议</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title><![CDATA[云中网络]]></title>
-    <url>%2F2019%2F06%2F25%2F24.%20%E4%BA%91%E4%B8%AD%E7%BD%91%E7%BB%9C%2F</url>
-    <content type="text"><![CDATA[虚拟网卡的原理虚拟网卡连接到云中共享与互通隔离灵活小结云计算的关键技术是虚拟化，这里我们重点关注的是，虚拟网卡通过打开 TUN/TAP 字符设备的方式，将虚拟机内外连接起来云中的网络重点关注四个方面，共享、隔离、互通、灵活。其中共享和互通有两种常用的方式，分别是桥接和 NAT，隔离可以通过 VLAN 的方式思考为了直观，这一节的内容我们以桌面虚拟化系统举例。在数据中心里面，有一款著名的开源软件 OpenStack，这一节讲的网络连通方式对应 OpenStack 中的哪些模型呢？这一节的最后，我们也提到了，本节提到的网络配置方式比较不灵活，你知道什么更加灵活的方式吗？]]></content>
-      <categories>
-        <category>网络协议</category>
-      </categories>
-      <tags>
-        <tag>网络协议</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title><![CDATA[云中的网络安全]]></title>
-    <url>%2F2019%2F06%2F25%2F26.%20%E4%BA%91%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%2F</url>
-    <content type="text"><![CDATA[公有云网络安全对于公有云上的虚拟机，我的建议是仅仅开放需要的端口，而将其他的端口一概关闭。这个时候，你只要通过安全措施守护好这个唯一的入口就可以了。采用的方式常常是用 ACL （Access Control List，访问控制列表）来控制 IP 和端口。网络包进入一台机器过程内核模块 ip_tablesconntrack（连接跟踪），filter（数据包过滤），nat（网络地址转换），mangle（数据包修改）nat 表主要是处理网络地址转换，可以进行 Snat（改变数据包的源地址）、Dnat（改变数据包的目标地址）表和链表iptables 的表分为四种：raw–&gt;mangle–&gt;nat–&gt;filter。这四个优先级依次降低，raw 不常用，所以主要功能都在其他三种表里实现。每个表可以设置多个链。云平台安装 iptables 配置小结云中的安全策略的常用方式是，使用 iptables 的规则，请记住它的五个阶段，PREROUTING、INPUT、FORWARD、OUTPUT、POSTROUTING。iptables 分为四种表，raw、mangle、nat、filter。其中安全策略主要在 filter 表中实现，而虚拟网络和物理网络地址的转换主要在 nat 表中实现。思考这一节中重点讲了 iptables 的 filter 和 nat 功能，iptables 还可以通过 QUEUE 实现负载均衡，你知道怎么做吗？这一节仅仅讲述了云中偷窥的问题，如果是一个合法的用户，但是不自觉抢占网络通道，应该采取什么策略呢？]]></content>
-      <categories>
-        <category>网络协议</category>
-      </categories>
-      <tags>
-        <tag>网络协议</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title><![CDATA[P2P协议]]></title>
-    <url>%2F2019%2F06%2F25%2FP2P%E5%8D%8F%E8%AE%AE%2F</url>
-    <content type="text"><![CDATA[P2P 协议总结。下载文件通过 HTTP 下载通过 FTP 下载，FTP 建立两个 TCP 连接来传输一个文件通过 P2P 下载FTP 的两种工作模式在 FTP 服务器的角度来说主动模式（PORT）客户端随机打开一个大于 1024 的端口 N，向服务器 21 端口发起连接，同时开放 N+1 端口监听，并将 N+1 端口告知服务器，由服务器从自己的数据端口 20 主动连接客户端的数据端口 N+1被动模式（PASV）客户端打开两个大于 1024 的任意端口 N 和 N+1，第一个端口连接服务器的 21 端口，提交 PASV 命令。然后服务器打开一个大于 1024 的任意端口 P，并告知客户端。客户端从 N+1 端口连接服务器 P 端口，进行数据传输种子（.torrent）文件.torrent 文件由 announce（tracker URL）和 文件信息组成文件信息内容如下info 区：该种子有几个文件，文件有多长，目录结构，目录及文件名Name 字段：顶层目录名每个段大小段哈希值：将整个种子中，每段的 SHA-1 哈希值拼在一起下载文件时，BT 客户端先解析.torrent 文件，得到 tracker 地址，然后连接 tracker 服务器，tracker 服务器回应下载者的请求，将其他下载者的 IP 提供给下载者，下载者再连接其他下载者，根据 .torrent 文件，两者分别告知对方自己已经有的段，然后交换对方没有的数据。此时不需要其他服务器参与，并分散了单个线路上的数据流量，因此减轻了服务器的负担。但是 tracker 服务器是弊端 ，一旦 tracker 服务器出现问题，BT 工具就无法工作去中心化网络（DHT，Distributed Hash Table）任何一个 BitTorrent 启动后，它都有两个角色，一个是 peer，监听一个 TCP 端口，用来上传和下载文件，这个角色表名，我这里有某个文件。另一个角色 DHT node，监听一个 UDP 端口，通过这个角色，这个节点加入了一个 DHT 的网络DHT 网络里，每个 DHT node 都有一个 ID，每个 DHT node 都有责任掌握一些信息，即文件索引，即它应该知道某些文件是保存在哪些节点上，而它本身不一定就是保存这个文件的节点DHT node ID 是一个随机选择的 160 bits(20字节) 空间，文件的哈希也使用这样的 160 bits 空间小结下载一个文件可以使用 HTTP 或 FTP，这两种都是集中下载的方式，而 P2P 则换了一种思路，采取非中心化下载的方式P2P 也是有两种，一种是依赖于 tracker 的，也即元数据集中，文件数据分散；一种是基于分布式的哈希算法，元数据和文件数据全部分散思考除了这种去中心化分布式哈希的算法，你还能想到其他的应用场景吗？在前面的所有章节中，要下载一个文件，都需要使用域名。但是网络通信是使用 IP 的，那你知道怎么实现两者的映射机制吗？]]></content>
-      <categories>
-        <category>网络协议</category>
-      </categories>
-      <tags>
-        <tag>网络协议</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title><![CDATA[网络协议串讲]]></title>
-    <url>%2F2019%2F06%2F25%2F37.%20%E4%B8%B2%E8%AE%B2%E7%BD%91%E7%BB%9C%E5%8D%8F%E8%AE%AE%2F</url>
-    <content type="text"><![CDATA[基本概念BGP 路由广播CDN 内容分发网络Open vSwitchOVSVXLANVPCIPsec VPNPaas 服务智能 DNSHSSMMESGWPGWGLSBSLBvarnish 缓存CIDR 子网掩码HAProxyCAS（Compare and Set，乐观锁）部署高可用高并发的电商平台公网 IP 通知到全世界手机网上，域名解析得 IP 地址购物之前看图片，静态资源 CDN点下单，双方建立连接下单请求网络包12345678910111213POST /purchaseOrder HTTP/1.1Host: www.geektime.comContent-Type: application/json; charset=utf-8Content-Length: nnn &#123; "order": &#123; "date": "2018-07-01", "className": " 趣谈网络协议 ", "Author": " 刘超 ", "price": "68" &#125;&#125;网络流控拥塞与重传数据中心进网关，公网 NAT 成私网进入隧道打标签，RPC 远程调用下单下单扣减库存，数据入库返回成功Restful API 要求幂等]]></content>
-      <categories>
-        <category>网络协议</category>
-      </categories>
-      <tags>
-        <tag>网络协议</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title><![CDATA[云中网络隔离]]></title>
-    <url>%2F2019%2F06%2F25%2F28.%20%E4%BA%91%E4%B8%AD%E7%BD%91%E7%BB%9C%E7%9A%84%E9%9A%94%E7%A6%BBGRE%E3%80%81VXLAN%2F</url>
-    <content type="text"><![CDATA[云中网络隔离底层的物理网络设备组成的网络我们称为 Underlay 网络，而用于虚拟机和云中的这些技术组成的网络称为 Overlay 网络，这是一种基于物理网络的虚拟化网络实现。GRE全称 Generic Routing Encapsulation，它是一种 IP-over-IP 的隧道技术。它将 IP 包封装在 GRE 包里，外面加上 IP 头，在隧道的一端封装数据包，并在通路上进行传输，到另外一端的时候解封装。你可以认为 Tunnel 是一个虚拟的、点对点的连接。缺点：GRE 是一种点对点隧道，如果有三个网络，就需要在每两个网络之间建立一个隧道。如果网络数目增多，这样隧道的数目会呈指数性增长。GRE 不支持组播有很多防火墙和三层网络设备无法解析 GRE，因此它们无法对 GRE 封装包做合适地过滤和负载均衡。VXLAN技术融入云平台小结要对不同用户的网络进行隔离，解决 VLAN 数目有限的问题，需要通过 Overlay 的方式，常用的有 GRE 和 VXLAN。GRE 是一种点对点的隧道模式，VXLAN 支持组播的隧道模式，它们都要在某个 Tunnel Endpoint 进行封装和解封装，来实现跨物理机的互通。OpenvSwitch 可以作为 Tunnel Endpoint，通过设置流表的规则，将虚拟机网络和物理机网络进行隔离、转换。思考虽然 VXLAN 可以支持组播，但是如果虚拟机数目比较多，在 Overlay 网络里面，广播风暴问题依然会很严重，你能想到什么办法解决这个问题吗？基于虚拟机的云比较复杂，而且虚拟机里面的网卡，到物理网络转换层次比较多，有一种比虚拟机更加轻量级的云的模式，你知道是什么吗？]]></content>
-      <categories>
-        <category>网络协议</category>
-      </categories>
-      <tags>
-        <tag>网络协议</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title><![CDATA[HTTP 协议]]></title>
-    <url>%2F2019%2F06%2F25%2F14.%20HTTP%20%E5%8D%8F%E8%AE%AE%2F</url>
-    <content type="text"><![CDATA[HTTP 协议HTTP 协议是应用层最常用的协议http://www.163.com 是个 URL，叫做统一资源定位符。http 是协议，www.163.com 是域名，表示互联网上的一个位置，通过 DNS 服务器解析为具体的 IP 地址HTTP 请求过程HTTP 请求准备将域名发送给 DNS 服务器，解析为具体的 IP 地址建立 TCP 连接，三次握手在 HTTP 1.1 的协议里面，默认是 keep-alive 。所以建立的 TCP 连接，可以在多次请求中复用。HTTP 请求构建HTTP 请求格式请求行方法：GET [获取信息]，POST [向服务器传输信息，新建]，PUT [向服务器上传更新信息，更新]，DELETE [删除资源]URL：统一资源定位符，不是 IP版本：HTTP 协议版本首部以 key-value 的形式设置信息，彼此通过冒号分隔。例如：Accept-Charset，表示客户端可以接受的字符集Content-Type，表示正文格式Cache-control，控制缓存HTTP 请求发送TCP 层在发送报文的时候，在 IP 头添加源 IP 地址和目标 IP 地址，交给 IP 层传输IP 层判断目标地址是否和自己在同一局域网，若是，则发送 ARP 协议请求该目标 IP 地址的 MAC 地址，若不是，则发送 ARP 协议请求网关的 MAC 地址。将源 MAC 地址和目标 MAC 地址放到 MAC 头，发送出去网关接收到包，确定目标 MAC 地址和自己一致后，根据目标 IP 地址，找到下一跳路由器的 MAC 地址并设置为目标 MAC 地址，将包发送给下一跳路由器不断执行上一步直到到达目标 IP 地址的局域网网关，网关发送 ARP ，获取到目标地址的 MAC 地址，将包发送出去目标服务器解析 TCP 头的端口号，通过端口号将包发给相应的进程处理HTTP 返回HTTP 返回报文格式返回过程和请求过程类似HTTP 2.0HTTP 2.0 对 HTTP 的头进行一定的压缩，将原来每次需要携带的大量 key-value 在服务器和客户端建立一个索引表，对相同的头，只发送索引表中的索引HTTP 2.0 将一个 TCP 连接请求，切分成多个流，每个流有自己的 IDHTTP 2.0 将传输信息分割为更小的消息和帧。常见的帧有 Header 帧和 Data 帧，每个 Header 帧会开启一个新的流，同一个流里面有多个 Data 帧每个帧可以乱序发送，通过帧首部的流标识符组装HTTP 2.0 解决了 HTTP 1.1 的首部阻塞问题，减少了 TCP 连接数对服务器性能的影响QUIC 协议HTTP 2.0 还是基于 TCP 协议的，在处理包的时候有严格的顺序，依旧会存在帧阻塞的问题QUIC 协议基于 UDP 协议机制一：自定义连接以一个 64 位随机数作为 ID 标识连接机制二：自定义重传发送的数据流设置偏移量 offset机制三：无阻塞的多路复用在自定义连接和重传机制的基础上，解决了多路复用机制四：自定义流量控制当前收到的最大 offset 到当前的 stream 所能容纳的最大缓存，是窗口大小小结HTTP 协议是基于 TCP 实现的HTTP 协议头部标识的重要方法：GET, POST, PUT, DELETEHTTP 2.0 通过头压缩，分帧，二进制编码，多路复用等技术提升性能QUIC 协议是 Google 创造的，通过基于 UDP 自定义类似 TCP 的连接，重传，多路复用，流量控制技术，进一步提升性能思考QUIC 是一个精巧的协议，所以它肯定不止今天提到的四种机制，你知道它还有哪些吗？这一节主要讲了如何基于 HTTP 浏览网页，如果要传输比较敏感的银行卡信息，该怎么办呢？]]></content>
-      <categories>
-        <category>网络协议</category>
-      </categories>
-      <tags>
-        <tag>网络协议</tag>
-      </tags>
-  </entry>
-  <entry>
     <title><![CDATA[DNS 协议]]></title>
     <url>%2F2019%2F06%2F25%2F18.%20DNS%E5%8D%8F%E8%AE%AE%2F</url>
     <content type="text"><![CDATA[DNS（Domain Name System）服务器需要高可用，高并发，分布式，于是，有了数状的层次结构根 DNS 服务器：返回顶级域 DNS 服务器的 IP 地址顶级域 DNS 服务器：返回权威 DNS 服务器的 IP 地址权威 DNS 服务器：返回相应主机的 IP 地址DNS 解析流程本地 DNS 服务器由网络服务商（ISP），如电信，移动等自动分配，它通常就在网络服务商的某个机房负载均衡内部负载均衡在域名解析的时候，配置策略，返回不同的 IP 地址全局负载均衡（GSLB，Global Server Load Balance）对不需要做全局负载均衡的简单应用，yourcompany.com 的权威 DNS 服务器可以直接将 object.yourcompany.com 这个域名解析为一个或者多个 IP 地址，然后客户端通过多个 IP 地址，进行简单的轮训，实现简单的负载均衡对于复杂的应用，尤其是跨地域跨运营商的大型应用，则需要更加复杂的全局网络负载均衡机制，因此需要专门的设备或者服务器来做这件事情，这就是全局负载均衡器（GSLB）图中第一层 GSLB，通过查看请求它的本地 DNS 服务器所在的运营商，得知用户所在的运营商。假设是移动，通过 CNAME 的方式，通过另一个别名 object.yd.yourcompany.com，盖住本地 DNS 服务器去请求第二层的 GSLB第二层 GSLB，通过查看请求它的本地 DNS 服务器所在的地址，就知道用户所在的地理位置，然后将距离用户位置比较近的 Region 里面，六个内部负载均衡（SLB，Server Load Balancer）的地址返回给本地 DNS 服务器本地 DNS 服务器将结果返回给本地 DNS 解析器本地 DNS 解析器将结果缓存后，返回给客户端客户端开始访问属于相同运营商的距离较近的 Region 1 中的对象存储，当然客户端得到了六个 IP 地址，它可以通过负载均衡的方式，随机或者轮询选择一个可用区进行访问。对象存储一般会有三个备份，从而可以实现对存储读写的负载均衡小结DNS 是网络世界的地址簿，可以通过域名查地址，因为域名服务器是按照树状结构组织的，因而域名查找是使用递归的方法，并通过缓存的方式增强性能在域名和 IP 的映射过程中，给了应用基于域名做负载均衡的机会，可以是简单的负载均衡，也可以根据地址和运营商做全局的负载均衡思考全局负载均衡为什么要分地址和运营商呢？全局负载均衡使用过程中，常常遇到失灵的情况吗？对应应该怎么来解决呢？]]></content>
-      <categories>
-        <category>网络协议</category>
-      </categories>
-      <tags>
-        <tag>网络协议</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title><![CDATA[CDN]]></title>
-    <url>%2F2019%2F06%2F25%2F20.%20CDN%2F</url>
-    <content type="text"><![CDATA[CDN 架构客户端如何找到边缘节点CDN 缓存流媒体 CDN 防盗链：HTTP 头的 refer 字段设置信息时间戳防盗链客户端取出当前的时间戳，要访问的资源及其路径，连同加密字符串进行签名算法得到一个字符串，然后生成一个下载链接，带上这个签名字符串和截止时间戳去访问 CDN。在 CDN 服务端，根据取出过期时间，和当前 CDN 节点时间进行比较，确认请求是否过期。然后 CDN 服务端有了资源及路径，时间戳，以及约定的加密字符串，根据相同的签名算法计算签名，如果匹配则一致，访问合法，才会将资源返回给客户。动态 CDN 模式生鲜超市模式，即边缘计算模式既然数据是动态生成的，所以数据的逻辑计算和存储，也相应的放在边缘的节点。其中定时从源数据那里同步存储的数据，然后在边缘进行计算得到结果。冷链运输模式，即路径优化模式数据不是在边缘计算生成的，而是在源站生成的，但是数据的下发则可以通过 CDN 的网络，对路径进行优化。因为 CDN 节点较多，能够找到离源站很近的边缘节点，也能找到离用户很近的边缘节点。中间的链路完全由 CDN 来规划，选择一个更加可靠的路径，使用类似专线的方式进行访问。小结CDN 和电商系统的分布式仓储系统一样，分为中心节点、区域节点、边缘节点，而数据缓存在离用户最近的位置。CDN 最擅长的是缓存静态数据，除此之外还可以缓存流媒体数据，这时候要注意使用防盗链。它也支持动态数据的缓存，一种是边缘计算的生鲜超市模式，另一种是链路优化的冷链运输模式。思考这一节讲了 CDN 使用 DNS 进行全局负载均衡的例子，CDN 如何使用 HTTPDNS 呢？客户端对 DNS、HTTPDNS、CDN 访问了半天，还没进数据中心，你知道数据中心里面什么样吗？]]></content>
-      <categories>
-        <category>网络协议</category>
-      </categories>
-      <tags>
-        <tag>网络协议</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title><![CDATA[HTTPS 协议]]></title>
-    <url>%2F2019%2F06%2F25%2F15.%20HTTPS%20%E5%8D%8F%E8%AE%AE%2F</url>
-    <content type="text"><![CDATA[HTTPS 协议使用加密算法解决 HTTP 协议的明文传输对称加密加密和解密的密钥一样，安全性不高，速度快非对称加密密钥分为公钥和私钥，加解密的密钥不一样，安全性高，速度慢由权威机构 [CA, Certificate Authority]颁发证书。证书里面有公钥，证书所有者，证书发布机构，证书有效期，签名算法权威机构会用它的私钥给证书签名得到证书后，用 CA 公钥解密证书签名，获取里面的公钥CA 公钥验证： CA 的上级证书的公钥，一直到 root CA，做最后的背书。通过层层授信背书，保证非对称加密模式的正常运转。HTTPS 协议工作模式重放与篡改Timestamp 和 Nonce 随机数 保证唯一性，只会接收一次，多次收到相同的 Timestamp 和 Nonce 则视为无效小结加密分为对称加密和非对称加密。对称加密效率高，但是解决不了密钥。传输的问题；非对称加密可以解决这个问题，但是效率不高非对称加密需要通过证书和权威机构来验证公钥的合法性HTTPS 是综合了对称加密和非对称加密算法的 HTTP 协议。既保证传输安全，也保证传输效率思考HTTPS 协议比较复杂，沟通过程太过繁琐，这样会导致效率问题，你知道有哪些手段可以解决这些问题吗？HTTP 和 HTTPS 协议的正文部分传输个 JSON 什么的还好，如果播放视频，就有问题了，那这个时候，应该使用什么协议呢？]]></content>
-      <categories>
-        <category>网络协议</category>
-      </categories>
-      <tags>
-        <tag>网络协议</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title><![CDATA[数据中心]]></title>
-    <url>%2F2019%2F06%2F25%2F21.%20%E6%95%B0%E6%8D%AE%E4%B8%AD%E5%BF%83%2F</url>
-    <content type="text"><![CDATA[数据中心TOR(Top Of Rack) 交换机网卡高可用交换机堆叠核心交换机环路问题大二层TRILL(Treansparent Interconnection of Lots of Link) 多链接透明互联协议把三层的路由能力模拟在二层实现大二层广播整个数据中心网络结构小结数据中心分为三层。服务器连接到接入层，然后是汇聚层，再然后是核心层，最外面是边界路由器和安全设备。数据中心的所有链路都需要高可用性。服务器需要绑定网卡，交换机需要堆叠，三层设备可以通过等价路由，二层设备可以通过 TRILL 协议。随着云和大数据的发展，东西流量相对于南北流量越来越重要，因而演化为叶脊网络结构。思考对于数据中心来讲，高可用是非常重要的，每个设备都要考虑高可用，那跨机房的高可用，你知道应该怎么做吗？前面说的浏览新闻、购物、下载、看视频等行为，都是普通用户通过公网访问数据中心里面的资源。那 IT 管理员应该通过什么样的方式访问数据中心呢？]]></content>
-      <categories>
-        <category>网络协议</category>
-      </categories>
-      <tags>
-        <tag>网络协议</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title><![CDATA[HTTPDNS]]></title>
-    <url>%2F2019%2F06%2F25%2F19.%20HTTPDNS%2F</url>
-    <content type="text"><![CDATA[传统 DNS 的问题域名缓存问题域名转发问题出口 NAT(网络地址转换) 问题一旦做了网络地址转换，权威的 DNS 服务器就没办法通过 IP 地址，来判断客户到底来自哪个运营商，很可能因为转换后的 IP 地址，误判运营商，导致跨运营商的访问域名更新问题解析延迟问题HTTPDNS 的工作模式不走传统的 DNS 解析，而是自己搭建基于 HTTP 协议的 DNS 服务器集群，分布在多个地点和多个运营商。当客户端需要 DNS 解析的时候，直接通过 HTTP 协议进行请求这个服务器集群，得到就近的地址。HTTPDNS 的缓存设计同步更新实时性好，但是如果有多个请求都发现过期的时候，同时会请求 HTTPDNS 多次，浪费资源异步更新可以将多个都过期的合并为一个 HTTPDNS 请求，只执行一次，减少 HTTPDNS 的压力。但是更新不实时可能拿到过期数据HTTPDNS 调度设计在客户端，SDK 会收集网络请求数据，如容错率、请求时间等网络请求质量数据，并发送到统计后台，进行分析聚合，以此查看不同的 IP 的服务质量在服务端，应用可以通过调用 HTTPDNS 的管理接口，配置不同服务质量的优先级，权重。HTTPDNS 会根据这些策略综合地理位置和线路状况算出一个排序，优先访问当前那些优质的，时延低的 IP 地址小结传统的 DNS 有很多问题，例如解析慢，更新不及时。因为缓存，转发，NAT 问题导致客户端误会自己所在的位置和运营商，从而影响流量的调度HTTPDNS 通过客户端 SDK 和服务端，通过 HTTP 直接调用解析 DNS 的方式，绕过了传统 DNS 的这些缺点，实现了智能调度思考使用 HTTPDNS，需要向 HTTPDNS 服务器请求解析域名，可是客户端怎么知道 HTTPDNS 服务器的地址或者域名呢？HTTPDNS 的只能调度，主要是让客户端选择最近的服务器，而有一种机制，使得资源分发到里客户端更近的位置，从而加快客户端的访问，你知道是什么技术吗？]]></content>
       <categories>
         <category>网络协议</category>
       </categories>
@@ -391,9 +281,130 @@
       </tags>
   </entry>
   <entry>
+    <title><![CDATA[P2P协议]]></title>
+    <url>%2F2019%2F06%2F25%2FP2P%E5%8D%8F%E8%AE%AE%2F</url>
+    <content type="text"><![CDATA[P2P 协议总结。下载文件通过 HTTP 下载通过 FTP 下载，FTP 建立两个 TCP 连接来传输一个文件通过 P2P 下载FTP 的两种工作模式在 FTP 服务器的角度来说主动模式（PORT）客户端随机打开一个大于 1024 的端口 N，向服务器 21 端口发起连接，同时开放 N+1 端口监听，并将 N+1 端口告知服务器，由服务器从自己的数据端口 20 主动连接客户端的数据端口 N+1被动模式（PASV）客户端打开两个大于 1024 的任意端口 N 和 N+1，第一个端口连接服务器的 21 端口，提交 PASV 命令。然后服务器打开一个大于 1024 的任意端口 P，并告知客户端。客户端从 N+1 端口连接服务器 P 端口，进行数据传输种子（.torrent）文件.torrent 文件由 announce（tracker URL）和 文件信息组成文件信息内容如下info 区：该种子有几个文件，文件有多长，目录结构，目录及文件名Name 字段：顶层目录名每个段大小段哈希值：将整个种子中，每段的 SHA-1 哈希值拼在一起下载文件时，BT 客户端先解析.torrent 文件，得到 tracker 地址，然后连接 tracker 服务器，tracker 服务器回应下载者的请求，将其他下载者的 IP 提供给下载者，下载者再连接其他下载者，根据 .torrent 文件，两者分别告知对方自己已经有的段，然后交换对方没有的数据。此时不需要其他服务器参与，并分散了单个线路上的数据流量，因此减轻了服务器的负担。但是 tracker 服务器是弊端 ，一旦 tracker 服务器出现问题，BT 工具就无法工作去中心化网络（DHT，Distributed Hash Table）任何一个 BitTorrent 启动后，它都有两个角色，一个是 peer，监听一个 TCP 端口，用来上传和下载文件，这个角色表名，我这里有某个文件。另一个角色 DHT node，监听一个 UDP 端口，通过这个角色，这个节点加入了一个 DHT 的网络DHT 网络里，每个 DHT node 都有一个 ID，每个 DHT node 都有责任掌握一些信息，即文件索引，即它应该知道某些文件是保存在哪些节点上，而它本身不一定就是保存这个文件的节点DHT node ID 是一个随机选择的 160 bits(20字节) 空间，文件的哈希也使用这样的 160 bits 空间小结下载一个文件可以使用 HTTP 或 FTP，这两种都是集中下载的方式，而 P2P 则换了一种思路，采取非中心化下载的方式P2P 也是有两种，一种是依赖于 tracker 的，也即元数据集中，文件数据分散；一种是基于分布式的哈希算法，元数据和文件数据全部分散思考除了这种去中心化分布式哈希的算法，你还能想到其他的应用场景吗？在前面的所有章节中，要下载一个文件，都需要使用域名。但是网络通信是使用 IP 的，那你知道怎么实现两者的映射机制吗？]]></content>
+      <categories>
+        <category>网络协议</category>
+      </categories>
+      <tags>
+        <tag>网络协议</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[数据中心]]></title>
+    <url>%2F2019%2F06%2F25%2F21.%20%E6%95%B0%E6%8D%AE%E4%B8%AD%E5%BF%83%2F</url>
+    <content type="text"><![CDATA[数据中心TOR(Top Of Rack) 交换机网卡高可用交换机堆叠核心交换机环路问题大二层TRILL(Treansparent Interconnection of Lots of Link) 多链接透明互联协议把三层的路由能力模拟在二层实现大二层广播整个数据中心网络结构小结数据中心分为三层。服务器连接到接入层，然后是汇聚层，再然后是核心层，最外面是边界路由器和安全设备。数据中心的所有链路都需要高可用性。服务器需要绑定网卡，交换机需要堆叠，三层设备可以通过等价路由，二层设备可以通过 TRILL 协议。随着云和大数据的发展，东西流量相对于南北流量越来越重要，因而演化为叶脊网络结构。思考对于数据中心来讲，高可用是非常重要的，每个设备都要考虑高可用，那跨机房的高可用，你知道应该怎么做吗？前面说的浏览新闻、购物、下载、看视频等行为，都是普通用户通过公网访问数据中心里面的资源。那 IT 管理员应该通过什么样的方式访问数据中心呢？]]></content>
+      <categories>
+        <category>网络协议</category>
+      </categories>
+      <tags>
+        <tag>网络协议</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[云中网络]]></title>
+    <url>%2F2019%2F06%2F25%2F24.%20%E4%BA%91%E4%B8%AD%E7%BD%91%E7%BB%9C%2F</url>
+    <content type="text"><![CDATA[虚拟网卡的原理虚拟网卡连接到云中共享与互通隔离灵活小结云计算的关键技术是虚拟化，这里我们重点关注的是，虚拟网卡通过打开 TUN/TAP 字符设备的方式，将虚拟机内外连接起来云中的网络重点关注四个方面，共享、隔离、互通、灵活。其中共享和互通有两种常用的方式，分别是桥接和 NAT，隔离可以通过 VLAN 的方式思考为了直观，这一节的内容我们以桌面虚拟化系统举例。在数据中心里面，有一款著名的开源软件 OpenStack，这一节讲的网络连通方式对应 OpenStack 中的哪些模型呢？这一节的最后，我们也提到了，本节提到的网络配置方式比较不灵活，你知道什么更加灵活的方式吗？]]></content>
+      <categories>
+        <category>网络协议</category>
+      </categories>
+      <tags>
+        <tag>网络协议</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[HTTPDNS]]></title>
+    <url>%2F2019%2F06%2F25%2F19.%20HTTPDNS%2F</url>
+    <content type="text"><![CDATA[传统 DNS 的问题域名缓存问题域名转发问题出口 NAT(网络地址转换) 问题一旦做了网络地址转换，权威的 DNS 服务器就没办法通过 IP 地址，来判断客户到底来自哪个运营商，很可能因为转换后的 IP 地址，误判运营商，导致跨运营商的访问域名更新问题解析延迟问题HTTPDNS 的工作模式不走传统的 DNS 解析，而是自己搭建基于 HTTP 协议的 DNS 服务器集群，分布在多个地点和多个运营商。当客户端需要 DNS 解析的时候，直接通过 HTTP 协议进行请求这个服务器集群，得到就近的地址。HTTPDNS 的缓存设计同步更新实时性好，但是如果有多个请求都发现过期的时候，同时会请求 HTTPDNS 多次，浪费资源异步更新可以将多个都过期的合并为一个 HTTPDNS 请求，只执行一次，减少 HTTPDNS 的压力。但是更新不实时可能拿到过期数据HTTPDNS 调度设计在客户端，SDK 会收集网络请求数据，如容错率、请求时间等网络请求质量数据，并发送到统计后台，进行分析聚合，以此查看不同的 IP 的服务质量在服务端，应用可以通过调用 HTTPDNS 的管理接口，配置不同服务质量的优先级，权重。HTTPDNS 会根据这些策略综合地理位置和线路状况算出一个排序，优先访问当前那些优质的，时延低的 IP 地址小结传统的 DNS 有很多问题，例如解析慢，更新不及时。因为缓存，转发，NAT 问题导致客户端误会自己所在的位置和运营商，从而影响流量的调度HTTPDNS 通过客户端 SDK 和服务端，通过 HTTP 直接调用解析 DNS 的方式，绕过了传统 DNS 的这些缺点，实现了智能调度思考使用 HTTPDNS，需要向 HTTPDNS 服务器请求解析域名，可是客户端怎么知道 HTTPDNS 服务器的地址或者域名呢？HTTPDNS 的只能调度，主要是让客户端选择最近的服务器，而有一种机制，使得资源分发到里客户端更近的位置，从而加快客户端的访问，你知道是什么技术吗？]]></content>
+      <categories>
+        <category>网络协议</category>
+      </categories>
+      <tags>
+        <tag>网络协议</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[HTTPS 协议]]></title>
+    <url>%2F2019%2F06%2F25%2F15.%20HTTPS%20%E5%8D%8F%E8%AE%AE%2F</url>
+    <content type="text"><![CDATA[HTTPS 协议使用加密算法解决 HTTP 协议的明文传输对称加密加密和解密的密钥一样，安全性不高，速度快非对称加密密钥分为公钥和私钥，加解密的密钥不一样，安全性高，速度慢由权威机构 [CA, Certificate Authority]颁发证书。证书里面有公钥，证书所有者，证书发布机构，证书有效期，签名算法权威机构会用它的私钥给证书签名得到证书后，用 CA 公钥解密证书签名，获取里面的公钥CA 公钥验证： CA 的上级证书的公钥，一直到 root CA，做最后的背书。通过层层授信背书，保证非对称加密模式的正常运转。HTTPS 协议工作模式重放与篡改Timestamp 和 Nonce 随机数 保证唯一性，只会接收一次，多次收到相同的 Timestamp 和 Nonce 则视为无效小结加密分为对称加密和非对称加密。对称加密效率高，但是解决不了密钥。传输的问题；非对称加密可以解决这个问题，但是效率不高非对称加密需要通过证书和权威机构来验证公钥的合法性HTTPS 是综合了对称加密和非对称加密算法的 HTTP 协议。既保证传输安全，也保证传输效率思考HTTPS 协议比较复杂，沟通过程太过繁琐，这样会导致效率问题，你知道有哪些手段可以解决这些问题吗？HTTP 和 HTTPS 协议的正文部分传输个 JSON 什么的还好，如果播放视频，就有问题了，那这个时候，应该使用什么协议呢？]]></content>
+      <categories>
+        <category>网络协议</category>
+      </categories>
+      <tags>
+        <tag>网络协议</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[HTTP 协议]]></title>
+    <url>%2F2019%2F06%2F25%2F14.%20HTTP%20%E5%8D%8F%E8%AE%AE%2F</url>
+    <content type="text"><![CDATA[HTTP 协议HTTP 协议是应用层最常用的协议http://www.163.com 是个 URL，叫做统一资源定位符。http 是协议，www.163.com 是域名，表示互联网上的一个位置，通过 DNS 服务器解析为具体的 IP 地址HTTP 请求过程HTTP 请求准备将域名发送给 DNS 服务器，解析为具体的 IP 地址建立 TCP 连接，三次握手在 HTTP 1.1 的协议里面，默认是 keep-alive 。所以建立的 TCP 连接，可以在多次请求中复用。HTTP 请求构建HTTP 请求格式请求行方法：GET [获取信息]，POST [向服务器传输信息，新建]，PUT [向服务器上传更新信息，更新]，DELETE [删除资源]URL：统一资源定位符，不是 IP版本：HTTP 协议版本首部以 key-value 的形式设置信息，彼此通过冒号分隔。例如：Accept-Charset，表示客户端可以接受的字符集Content-Type，表示正文格式Cache-control，控制缓存HTTP 请求发送TCP 层在发送报文的时候，在 IP 头添加源 IP 地址和目标 IP 地址，交给 IP 层传输IP 层判断目标地址是否和自己在同一局域网，若是，则发送 ARP 协议请求该目标 IP 地址的 MAC 地址，若不是，则发送 ARP 协议请求网关的 MAC 地址。将源 MAC 地址和目标 MAC 地址放到 MAC 头，发送出去网关接收到包，确定目标 MAC 地址和自己一致后，根据目标 IP 地址，找到下一跳路由器的 MAC 地址并设置为目标 MAC 地址，将包发送给下一跳路由器不断执行上一步直到到达目标 IP 地址的局域网网关，网关发送 ARP ，获取到目标地址的 MAC 地址，将包发送出去目标服务器解析 TCP 头的端口号，通过端口号将包发给相应的进程处理HTTP 返回HTTP 返回报文格式返回过程和请求过程类似HTTP 2.0HTTP 2.0 对 HTTP 的头进行一定的压缩，将原来每次需要携带的大量 key-value 在服务器和客户端建立一个索引表，对相同的头，只发送索引表中的索引HTTP 2.0 将一个 TCP 连接请求，切分成多个流，每个流有自己的 IDHTTP 2.0 将传输信息分割为更小的消息和帧。常见的帧有 Header 帧和 Data 帧，每个 Header 帧会开启一个新的流，同一个流里面有多个 Data 帧每个帧可以乱序发送，通过帧首部的流标识符组装HTTP 2.0 解决了 HTTP 1.1 的首部阻塞问题，减少了 TCP 连接数对服务器性能的影响QUIC 协议HTTP 2.0 还是基于 TCP 协议的，在处理包的时候有严格的顺序，依旧会存在帧阻塞的问题QUIC 协议基于 UDP 协议机制一：自定义连接以一个 64 位随机数作为 ID 标识连接机制二：自定义重传发送的数据流设置偏移量 offset机制三：无阻塞的多路复用在自定义连接和重传机制的基础上，解决了多路复用机制四：自定义流量控制当前收到的最大 offset 到当前的 stream 所能容纳的最大缓存，是窗口大小小结HTTP 协议是基于 TCP 实现的HTTP 协议头部标识的重要方法：GET, POST, PUT, DELETEHTTP 2.0 通过头压缩，分帧，二进制编码，多路复用等技术提升性能QUIC 协议是 Google 创造的，通过基于 UDP 自定义类似 TCP 的连接，重传，多路复用，流量控制技术，进一步提升性能思考QUIC 是一个精巧的协议，所以它肯定不止今天提到的四种机制，你知道它还有哪些吗？这一节主要讲了如何基于 HTTP 浏览网页，如果要传输比较敏感的银行卡信息，该怎么办呢？]]></content>
+      <categories>
+        <category>网络协议</category>
+      </categories>
+      <tags>
+        <tag>网络协议</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[云中的网络安全]]></title>
+    <url>%2F2019%2F06%2F25%2F26.%20%E4%BA%91%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%2F</url>
+    <content type="text"><![CDATA[公有云网络安全对于公有云上的虚拟机，我的建议是仅仅开放需要的端口，而将其他的端口一概关闭。这个时候，你只要通过安全措施守护好这个唯一的入口就可以了。采用的方式常常是用 ACL （Access Control List，访问控制列表）来控制 IP 和端口。网络包进入一台机器过程内核模块 ip_tablesconntrack（连接跟踪），filter（数据包过滤），nat（网络地址转换），mangle（数据包修改）nat 表主要是处理网络地址转换，可以进行 Snat（改变数据包的源地址）、Dnat（改变数据包的目标地址）表和链表iptables 的表分为四种：raw–&gt;mangle–&gt;nat–&gt;filter。这四个优先级依次降低，raw 不常用，所以主要功能都在其他三种表里实现。每个表可以设置多个链。云平台安装 iptables 配置小结云中的安全策略的常用方式是，使用 iptables 的规则，请记住它的五个阶段，PREROUTING、INPUT、FORWARD、OUTPUT、POSTROUTING。iptables 分为四种表，raw、mangle、nat、filter。其中安全策略主要在 filter 表中实现，而虚拟网络和物理网络地址的转换主要在 nat 表中实现。思考这一节中重点讲了 iptables 的 filter 和 nat 功能，iptables 还可以通过 QUEUE 实现负载均衡，你知道怎么做吗？这一节仅仅讲述了云中偷窥的问题，如果是一个合法的用户，但是不自觉抢占网络通道，应该采取什么策略呢？]]></content>
+      <categories>
+        <category>网络协议</category>
+      </categories>
+      <tags>
+        <tag>网络协议</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[云中网络隔离]]></title>
+    <url>%2F2019%2F06%2F25%2F28.%20%E4%BA%91%E4%B8%AD%E7%BD%91%E7%BB%9C%E7%9A%84%E9%9A%94%E7%A6%BBGRE%E3%80%81VXLAN%2F</url>
+    <content type="text"><![CDATA[云中网络隔离底层的物理网络设备组成的网络我们称为 Underlay 网络，而用于虚拟机和云中的这些技术组成的网络称为 Overlay 网络，这是一种基于物理网络的虚拟化网络实现。GRE全称 Generic Routing Encapsulation，它是一种 IP-over-IP 的隧道技术。它将 IP 包封装在 GRE 包里，外面加上 IP 头，在隧道的一端封装数据包，并在通路上进行传输，到另外一端的时候解封装。你可以认为 Tunnel 是一个虚拟的、点对点的连接。缺点：GRE 是一种点对点隧道，如果有三个网络，就需要在每两个网络之间建立一个隧道。如果网络数目增多，这样隧道的数目会呈指数性增长。GRE 不支持组播有很多防火墙和三层网络设备无法解析 GRE，因此它们无法对 GRE 封装包做合适地过滤和负载均衡。VXLAN技术融入云平台小结要对不同用户的网络进行隔离，解决 VLAN 数目有限的问题，需要通过 Overlay 的方式，常用的有 GRE 和 VXLAN。GRE 是一种点对点的隧道模式，VXLAN 支持组播的隧道模式，它们都要在某个 Tunnel Endpoint 进行封装和解封装，来实现跨物理机的互通。OpenvSwitch 可以作为 Tunnel Endpoint，通过设置流表的规则，将虚拟机网络和物理机网络进行隔离、转换。思考虽然 VXLAN 可以支持组播，但是如果虚拟机数目比较多，在 Overlay 网络里面，广播风暴问题依然会很严重，你能想到什么办法解决这个问题吗？基于虚拟机的云比较复杂，而且虚拟机里面的网卡，到物理网络转换层次比较多，有一种比虚拟机更加轻量级的云的模式，你知道是什么吗？]]></content>
+      <categories>
+        <category>网络协议</category>
+      </categories>
+      <tags>
+        <tag>网络协议</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[CDN]]></title>
+    <url>%2F2019%2F06%2F25%2F20.%20CDN%2F</url>
+    <content type="text"><![CDATA[CDN 架构客户端如何找到边缘节点CDN 缓存流媒体 CDN 防盗链：HTTP 头的 refer 字段设置信息时间戳防盗链客户端取出当前的时间戳，要访问的资源及其路径，连同加密字符串进行签名算法得到一个字符串，然后生成一个下载链接，带上这个签名字符串和截止时间戳去访问 CDN。在 CDN 服务端，根据取出过期时间，和当前 CDN 节点时间进行比较，确认请求是否过期。然后 CDN 服务端有了资源及路径，时间戳，以及约定的加密字符串，根据相同的签名算法计算签名，如果匹配则一致，访问合法，才会将资源返回给客户。动态 CDN 模式生鲜超市模式，即边缘计算模式既然数据是动态生成的，所以数据的逻辑计算和存储，也相应的放在边缘的节点。其中定时从源数据那里同步存储的数据，然后在边缘进行计算得到结果。冷链运输模式，即路径优化模式数据不是在边缘计算生成的，而是在源站生成的，但是数据的下发则可以通过 CDN 的网络，对路径进行优化。因为 CDN 节点较多，能够找到离源站很近的边缘节点，也能找到离用户很近的边缘节点。中间的链路完全由 CDN 来规划，选择一个更加可靠的路径，使用类似专线的方式进行访问。小结CDN 和电商系统的分布式仓储系统一样，分为中心节点、区域节点、边缘节点，而数据缓存在离用户最近的位置。CDN 最擅长的是缓存静态数据，除此之外还可以缓存流媒体数据，这时候要注意使用防盗链。它也支持动态数据的缓存，一种是边缘计算的生鲜超市模式，另一种是链路优化的冷链运输模式。思考这一节讲了 CDN 使用 DNS 进行全局负载均衡的例子，CDN 如何使用 HTTPDNS 呢？客户端对 DNS、HTTPDNS、CDN 访问了半天，还没进数据中心，你知道数据中心里面什么样吗？]]></content>
+      <categories>
+        <category>网络协议</category>
+      </categories>
+      <tags>
+        <tag>网络协议</tag>
+      </tags>
+  </entry>
+  <entry>
     <title><![CDATA[软件定义网络]]></title>
     <url>%2F2019%2F06%2F25%2F25.%20%E8%BD%AF%E4%BB%B6%E5%AE%9A%E4%B9%89%E7%BD%91%E7%BB%9C%2F</url>
     <content type="text"><![CDATA[软件定义网络 （SDN）SDN 主要特点控制与转发分离控制平面与转发平面之间的开放接口逻辑上的集中控制OpenFlow 和 OpenSwitchOpenFlow 是 SDN 控制器和网络设备之间互通的南向接口协议，OpenvSwitch 用于创建软件的虚拟交换机。OpenvSwitch 是支持 OpenFlow 协议的，当然也有一些硬件交换机也支持 OpenFlow 协议。它们都可以被统一的 SDN 控制器管理，从而实现物理机和虚拟机的网络连通。在 OpenvSwitch 里面，有一个流表规则，任何通过这个交换机的包，都会经过这些规则进行处理，从而接收、转发、放弃。通过这些表格，可以对收到的网络包随意处理。总而言之，对于 OpenvSwitch 来讲，网络包到了我手里，就是一个 Buffer，我想怎么改怎么改，想发到哪个端口就发送到哪个端口。实验实验一：用 OpenvSwitch 实现 VLAN 的功能实验二：用 OpenvSwitch 模拟网卡绑定，连接交换机在 OpenvSwitch 里面，有个 bond_mode，可以设置为以下三个值：active-backup：一个连接是 active，其他的是 backup，当 active 失效的时候，backup 顶上；balance-slb：流量安装源 MAC 和 output VLAN 进行负载均衡；balance-tcp：必须在支持 LACP 协议的情况下才可以，可根据 L2, L3, L4 进行负载均衡。OpenSwitch 架构图如何在云计算中使用 OpenSwitch小结用 SDN 控制整个云里面的网络，就像小区保安从总控室管理整个物业是一样的，将控制面和数据面进行了分离一种开源的虚拟交换机的实现 OpenvSwitch，它能对经过自己的包做任意修改，从而使得云对网络的控制十分灵活将 OpenvSwitch 引入了云之后，可以使得配置简单而灵活，并且可以解耦物理网络和虚拟网络思考在这一节中，提到了通过 VIP 可以通过流表在不同的机器之间实现复杂均衡，你知道怎样才能做到吗？虽然 OpenvSwitch 可以解耦物理网络和虚拟网络，但是在物理网络里面使用 VLAN，数目还是不够，你知道该怎么办吗？]]></content>
+      <categories>
+        <category>网络协议</category>
+      </categories>
+      <tags>
+        <tag>网络协议</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[云中的网络Qos]]></title>
+    <url>%2F2019%2F06%2F25%2F27.%20%E4%BA%91%E4%B8%AD%E7%9A%84%E7%BD%91%E7%BB%9CQoS%2F</url>
+    <content type="text"><![CDATA[控制网络的 QoS无类别排队规则基于类别的排队规则控制 Qos对于进入的流量，可以设置策略 Ingress policy；对于发出的流量，可以设置 QoS 规则 Egress shaping，支持 HTB。小结云中的流量控制主要通过队列进行的，队列分为两大类：无类别队列规则和基于类别的队列规则。在云中网络 Openvswitch 中，主要使用的是分层令牌桶规则（HTB），将总的带宽在一棵树上按照配置的比例进行分配，并且在一个分支不用的时候，可以借给另外的分支，从而增强带宽利用率。思考这一节中提到，入口流量其实没有办法控制，出口流量是可以很好控制的，你能想出一个控制云中的虚拟机的入口流量的方式吗？安全性和流量控制大概解决了，但是不同用户在物理网络的隔离还是没有解决，你知道怎么解决吗？]]></content>
+      <categories>
+        <category>网络协议</category>
+      </categories>
+      <tags>
+        <tag>网络协议</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[网络协议串讲]]></title>
+    <url>%2F2019%2F06%2F25%2F37.%20%E4%B8%B2%E8%AE%B2%E7%BD%91%E7%BB%9C%E5%8D%8F%E8%AE%AE%2F</url>
+    <content type="text"><![CDATA[基本概念BGP 路由广播CDN 内容分发网络Open vSwitchOVSVXLANVPCIPsec VPNPaas 服务智能 DNSHSSMMESGWPGWGLSBSLBvarnish 缓存CIDR 子网掩码HAProxyCAS（Compare and Set，乐观锁）部署高可用高并发的电商平台公网 IP 通知到全世界手机网上，域名解析得 IP 地址购物之前看图片，静态资源 CDN点下单，双方建立连接下单请求网络包12345678910111213POST /purchaseOrder HTTP/1.1Host: www.geektime.comContent-Type: application/json; charset=utf-8Content-Length: nnn &#123; "order": &#123; "date": "2018-07-01", "className": " 趣谈网络协议 ", "Author": " 刘超 ", "price": "68" &#125;&#125;网络流控拥塞与重传数据中心进网关，公网 NAT 成私网进入隧道打标签，RPC 远程调用下单下单扣减库存，数据入库返回成功Restful API 要求幂等]]></content>
       <categories>
         <category>网络协议</category>
       </categories>
